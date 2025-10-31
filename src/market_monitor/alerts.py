@@ -3,9 +3,10 @@ from __future__ import annotations
 import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage
-from typing import Iterable, Protocol
+from typing import Iterable, Protocol, TYPE_CHECKING
 
-import httpx
+if TYPE_CHECKING:  # pragma: no cover - imported for typing only
+    import httpx
 
 from .logging_config import get_logger
 
@@ -51,7 +52,7 @@ class DiscordWebhookChannel:
             logger.warning("Discord channel disabled - missing webhook URL")
             return
         payload = {"content": "\n".join(messages)}
-        response = httpx.post(self.webhook_url, json=payload, timeout=10.0)
+        response = _post_json(self.webhook_url, payload)
         response.raise_for_status()
 
 
@@ -67,7 +68,7 @@ class TelegramBotChannel:
             return
         payload = {"chat_id": self.chat_id, "text": "\n".join(messages)}
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
-        response = httpx.post(url, json=payload, timeout=10.0)
+        response = _post_json(url, payload)
         response.raise_for_status()
 
 
@@ -78,3 +79,14 @@ def dispatch_alerts(channels: Iterable[AlertChannel], messages: Iterable[str]) -
             channel.send(messages)
         except Exception as exc:  # pragma: no cover
             logger.exception("Failed to send alerts via %s: %s", channel.name, exc)
+
+
+def _post_json(url: str, payload: dict[str, object]):
+    try:
+        import httpx
+    except ModuleNotFoundError as exc:  # pragma: no cover - exercised in environments without httpx
+        raise RuntimeError(
+            "httpx is required for webhook-based alert channels. Install the 'httpx' extra to enable them."
+        ) from exc
+
+    return httpx.post(url, json=payload, timeout=10.0)
