@@ -17,7 +17,10 @@ A modular toolkit for aggregating Counter-Strike skin prices across popular mark
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt  # installs the test tooling
+
+# Optional: enable HTTP collectors and webhook alerts
+pip install httpx
 ```
 
 ## Usage
